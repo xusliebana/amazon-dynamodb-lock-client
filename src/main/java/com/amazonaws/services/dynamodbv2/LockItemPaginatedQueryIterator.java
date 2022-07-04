@@ -61,17 +61,14 @@ final class LockItemPaginatedQueryIterator extends LockItemPaginatedIterator {
   protected void loadNextPageIntoResults() {
     this.queryResponse = this.dynamoDB.query(this.queryRequest);
 
-    //this.currentPageResults = this.queryResponse.getItems().stream().map(this.lockItemFactory::create).collect(toList());
+    this.currentPageResults = this.queryResponse.getItems().stream().map(this.lockItemFactory::create).collect(toList());
     this.currentPageResultsIndex = 0;
-    /*
-    this.queryRequest = new CreateTableRequest(queryRequest.getTableName()).builder()
-        .tableName(queryRequest.tableName())
-        .keyConditionExpression(queryRequest.keyConditionExpression())
-        .expressionAttributeNames(queryRequest.expressionAttributeNames())
-        .expressionAttributeValues(queryRequest.expressionAttributeValues())
-        .exclusiveStartKey(queryResponse.lastEvaluatedKey())
-        .build();
 
-     */
+    this.queryRequest = new QueryRequest().
+         withTableName(queryRequest.getTableName()).
+         withKeyConditionExpression(queryRequest.getKeyConditionExpression())
+        .withExpressionAttributeNames(queryRequest.getExpressionAttributeNames())
+        .withExpressionAttributeValues(queryRequest.getExpressionAttributeValues())
+        .withExclusiveStartKey(queryResponse.getLastEvaluatedKey());
   }
 }
