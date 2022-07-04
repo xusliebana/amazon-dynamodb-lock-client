@@ -36,39 +36,14 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import com.amazonaws.services.dynamodbv2.model.LockCurrentlyUnavailableException;
+import com.amazonaws.services.dynamodbv2.model.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.amazonaws.services.dynamodbv2.GetLockOptions.GetLockOptionsBuilder;
-import com.amazonaws.services.dynamodbv2.model.LockNotGrantedException;
-import com.amazonaws.services.dynamodbv2.model.LockTableDoesNotExistException;
 import com.amazonaws.services.dynamodbv2.util.LockClientUtils;
-import software.amazon.awssdk.annotations.ThreadSafe;
-import software.amazon.awssdk.awscore.exception.AwsServiceException;
-import software.amazon.awssdk.core.SdkBytes;
-import software.amazon.awssdk.core.exception.SdkClientException;
-import software.amazon.awssdk.http.HttpStatusCode;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
-import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
-import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
-import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
-import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
-import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
-import software.amazon.awssdk.services.dynamodb.model.KeyType;
-import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExceededException;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
-import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
-import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
-import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
-import software.amazon.awssdk.services.dynamodb.model.TableStatus;
-import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import com.amazonaws.AmazonServiceException;
+
 
 /**
  * <p>
@@ -136,7 +111,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
  * @author <a href="mailto:slutsker@amazon.com">Sasha Slutsker</a>
  * @author <a href="mailto:amcp@amazon.com">Alexander Patrikalakis</a>
  */
-@ThreadSafe
+//@ThreadSafe
 public class AmazonDynamoDBLockClient implements Runnable, Closeable {
     private static final Log logger = LogFactory.getLog(AmazonDynamoDBLockClient.class);
     private static final Set<TableStatus> availableStatuses;
@@ -224,7 +199,7 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
         availableStatuses.add(TableStatus.UPDATING);
     }
 
-    protected final DynamoDbClient dynamoDB;
+    protected final AmazonDynamoDBClient dynamoDB;
     protected final String tableName;
     private final String partitionKeyName;
     private final Optional<String> sortKeyName;
@@ -245,7 +220,7 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
     protected static final String RECORD_VERSION_NUMBER = "recordVersionNumber";
     protected static final String IS_RELEASED = "isReleased";
     protected static final String IS_RELEASED_VALUE = "1";
-    protected static final AttributeValue IS_RELEASED_ATTRIBUTE_VALUE = AttributeValue.builder().s(IS_RELEASED_VALUE).build();
+    protected static final AttributeValue IS_RELEASED_ATTRIBUTE_VALUE = new AttributeValue().withS(IS_RELEASED_VALUE);
     protected static volatile AtomicInteger lockClientId = new AtomicInteger(0);
     protected static final Boolean IS_RELEASED_INDICATOR = true;
     /*
@@ -300,9 +275,9 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
      */
     public boolean lockTableExists() {
         try {
-            final DescribeTableResponse result
-                    = this.dynamoDB.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
-            return availableStatuses.contains(result.table().tableStatus());
+            final DescribeTableResult result
+                    = this.dynamoDB.describeTable(new DescribeTableRequest(tableName));
+            return availableStatuses.contains(result.getTable().getTableStatus());
         } catch (final ResourceNotFoundException e) {
             // This exception indicates the table doesn't exist.
             return false;
@@ -345,37 +320,31 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
         Objects.requireNonNull(createDynamoDBTableOptions.getProvisionedThroughput(), "Provisioned throughput cannot be null");
         Objects.requireNonNull(createDynamoDBTableOptions.getPartitionKeyName(), "Hash Key Name cannot be null");
         Objects.requireNonNull(createDynamoDBTableOptions.getSortKeyName(), "Sort Key Name cannot be null");
-        final KeySchemaElement partitionKeyElement = KeySchemaElement.builder()
-                .attributeName(createDynamoDBTableOptions.getPartitionKeyName()).keyType(KeyType.HASH)
-                .build();
+        final KeySchemaElement partitionKeyElement = new KeySchemaElement();
+        partitionKeyElement.setAttributeName(createDynamoDBTableOptions.getPartitionKeyName());
+        partitionKeyElement.setKeyType(KeyType.HASH);
+
 
         final List<KeySchemaElement> keySchema = new ArrayList<>();
         keySchema.add(partitionKeyElement);
 
         final Collection<AttributeDefinition> attributeDefinitions = new ArrayList<>();
-        attributeDefinitions.add(AttributeDefinition.builder()
-                .attributeName(createDynamoDBTableOptions.getPartitionKeyName())
-                .attributeType(ScalarAttributeType.S)
-                .build());
+        attributeDefinitions.add(new AttributeDefinition(createDynamoDBTableOptions.getPartitionKeyName(),
+                ScalarAttributeType.S));
 
         if (createDynamoDBTableOptions.getSortKeyName().isPresent()) {
-            final KeySchemaElement sortKeyElement = KeySchemaElement.builder()
-                    .attributeName(createDynamoDBTableOptions.getSortKeyName().get())
-                    .keyType(KeyType.RANGE)
-                    .build();
+            final KeySchemaElement sortKeyElement = new KeySchemaElement();
+            sortKeyElement.setAttributeName(createDynamoDBTableOptions.getSortKeyName().get());
+            sortKeyElement.setKeyType(KeyType.RANGE);
+
             keySchema.add(sortKeyElement);
-            attributeDefinitions.add(AttributeDefinition.builder()
-                    .attributeName(createDynamoDBTableOptions.getSortKeyName().get())
-                    .attributeType(ScalarAttributeType.S)
-                    .build());
+            attributeDefinitions.add(new AttributeDefinition(
+                    createDynamoDBTableOptions.getSortKeyName().get(),ScalarAttributeType.S));
         }
 
-        final CreateTableRequest createTableRequest = CreateTableRequest.builder()
-                .tableName(createDynamoDBTableOptions.getTableName())
-                .keySchema(keySchema)
-                .provisionedThroughput(createDynamoDBTableOptions.getProvisionedThroughput())
-                .attributeDefinitions(attributeDefinitions)
-                .build();
+        final CreateTableRequest createTableRequest = new CreateTableRequest(createDynamoDBTableOptions.getTableName(), keySchema);
+                createTableRequest.setProvisionedThroughput(createDynamoDBTableOptions.getProvisionedThroughput());
+                createTableRequest.setAttributeDefinitions(attributeDefinitions);
 
         createDynamoDBTableOptions.getDynamoDBClient().createTable(createTableRequest);
     }
@@ -1202,6 +1171,7 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
                 logger.debug("Someone else acquired the lock, so we will stop heartbeating it", conditionalCheckFailedException);
                 this.locks.remove(lockItem.getUniqueIdentifier());
                 throw new LockNotGrantedException("Someone else acquired the lock, so we will stop heartbeating it", conditionalCheckFailedException);
+            //TODO not sure if this is the right type.
             } catch (AwsServiceException awsServiceException) {
                 if (holdLockOnServiceUnavailable
                         && awsServiceException.awsErrorDetails().sdkHttpResponse().statusCode() == HttpStatusCode.SERVICE_UNAVAILABLE) {
@@ -1275,15 +1245,15 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
     }
 
     /* Helper method to read a key from DynamoDB */
-    private GetItemResponse readFromDynamoDB(final String key, final Optional<String> sortKey) {
+    private GetItemResult readFromDynamoDB(final String key, final Optional<String> sortKey) {
         final Map<String, AttributeValue> dynamoDBKey = new HashMap<>();
-        dynamoDBKey.put(this.partitionKeyName, AttributeValue.builder().s(key).build());
+        dynamoDBKey.put(this.partitionKeyName, new AttributeValue(key));
         if (this.sortKeyName.isPresent()) {
-            dynamoDBKey.put(this.sortKeyName.get(), AttributeValue.builder().s(sortKey.get()).build());
+            dynamoDBKey.put(this.sortKeyName.get(), new AttributeValue(sortKey.get()));
         }
-        final GetItemRequest getItemRequest = GetItemRequest.builder().tableName(tableName).key(dynamoDBKey)
-                .consistentRead(true)
-                .build();
+        final GetItemRequest getItemRequest = new GetItemRequest(tableName, dynamoDBKey);
+        getItemRequest.setConsistentRead(true);
+
 
         return this.dynamoDB.getItem(getItemRequest);
     }

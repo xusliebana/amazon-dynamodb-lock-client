@@ -14,6 +14,7 @@
  */
 package com.amazonaws.services.dynamodbv2;
 
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.LockNotGrantedException;
 import com.amazonaws.services.dynamodbv2.model.SessionMonitorNotSetException;
 import com.amazonaws.services.dynamodbv2.util.LockClientUtils;
@@ -26,7 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+//import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 /**
  * A lock that has been successfully acquired. Provides APIs for releasing, heartbeating, and extending the lock.

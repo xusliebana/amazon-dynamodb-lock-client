@@ -14,14 +14,14 @@
  */
 package com.amazonaws.services.dynamodbv2;
 
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 /**
  * Provides options for acquiring a lock when calling the acquireLock() method.
