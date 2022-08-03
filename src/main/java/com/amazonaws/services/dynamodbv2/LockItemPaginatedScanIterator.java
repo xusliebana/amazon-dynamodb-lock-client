@@ -25,7 +25,7 @@ import static java.util.stream.Collectors.toList;
  * Lazy-loaded. Not immutable. Not thread safe.
  */
 final class LockItemPaginatedScanIterator extends LockItemPaginatedIterator {
-    private final AmazonDynamoDBClient dynamoDB;
+    private final AmazonDynamoDB dynamoDB;
     private volatile ScanRequest scanRequest;
     private final LockItemFactory lockItemFactory;
 
@@ -37,7 +37,7 @@ final class LockItemPaginatedScanIterator extends LockItemPaginatedIterator {
      */
     private volatile ScanResult scanResponse = null;
 
-    LockItemPaginatedScanIterator(final AmazonDynamoDBClient dynamoDB, final ScanRequest scanRequest, final LockItemFactory lockItemFactory) {
+    LockItemPaginatedScanIterator(final AmazonDynamoDB dynamoDB, final ScanRequest scanRequest, final LockItemFactory lockItemFactory) {
         this.dynamoDB = Objects.requireNonNull(dynamoDB, "dynamoDB must not be null");
         this.scanRequest = Objects.requireNonNull(scanRequest, "scanRequest must not be null");
         this.lockItemFactory = Objects.requireNonNull(lockItemFactory, "lockItemFactory must not be null");

@@ -18,13 +18,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 
 import org.mockito.junit.MockitoJUnitRunner;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 
 /**
  * Unit tests for CreateDynamoDBTableOptions.
@@ -34,16 +33,17 @@ import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
 @RunWith(MockitoJUnitRunner.class)
 public class CreateDynamoDBTableOptionsTest {
     @Mock
-    DynamoDbClient dynamodb;
+    AmazonDynamoDB dynamodb;
     @Test
     public void builder_whenDynamoDbClientReset_isSame() {
         CreateDynamoDBTableOptions.CreateDynamoDBTableOptionsBuilder builder =
-            CreateDynamoDBTableOptions.builder(dynamodb, ProvisionedThroughput.builder().readCapacityUnits(1L).writeCapacityUnits(1L).build(),"table");
+            CreateDynamoDBTableOptions.builder(dynamodb,
+                    new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L),"table");
         assertTrue(dynamodb == builder.build().getDynamoDBClient());
     }
     @Test
     public void builder_whenProvisionedThroughputReset_isSame() {
-        ProvisionedThroughput pt = ProvisionedThroughput.builder().readCapacityUnits(1L).writeCapacityUnits(1L).build();
+        ProvisionedThroughput pt = new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L);
         CreateDynamoDBTableOptions.CreateDynamoDBTableOptionsBuilder builder =
             CreateDynamoDBTableOptions.builder(dynamodb, pt,"table");
         assertTrue(pt == builder.build().getProvisionedThroughput());
@@ -53,14 +53,14 @@ public class CreateDynamoDBTableOptionsTest {
     public void builder_whenTableNameReset_isSame() {
         String tableName = "table";
         CreateDynamoDBTableOptions.CreateDynamoDBTableOptionsBuilder builder =
-            CreateDynamoDBTableOptions.builder(dynamodb, ProvisionedThroughput.builder().readCapacityUnits(1L).writeCapacityUnits(1L).build(), tableName);
+            CreateDynamoDBTableOptions.builder(dynamodb, new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L), tableName);
         assertTrue(tableName == builder.build().getTableName());
     }
 
     @Test
     public void builder_whenPartitionKeyNameReset_isSame() {
         CreateDynamoDBTableOptions.CreateDynamoDBTableOptionsBuilder builder =
-            CreateDynamoDBTableOptions.builder(dynamodb, ProvisionedThroughput.builder().readCapacityUnits(1L).writeCapacityUnits(1L).build(),"table");
+            CreateDynamoDBTableOptions.builder(dynamodb, new ProvisionedThroughput().withReadCapacityUnits(1L).withWriteCapacityUnits(1L),"table");
         builder.withPartitionKeyName(null);
         assertNull(builder.build().getPartitionKeyName());
         String partitionKeyName = "key";

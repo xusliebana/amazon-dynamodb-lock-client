@@ -23,10 +23,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -248,7 +248,7 @@ public class AcquireLockOptionsTest {
     public void equals_additionalAttributesDifferent_returnsFalse() {
         AcquireLockOptions left = createLockOptions();
         Map<String, AttributeValue> additionalAttributes = new HashMap<>();
-        additionalAttributes.put("asdf", AttributeValue.builder().nul(Boolean.TRUE).build());
+        additionalAttributes.put("asdf", new AttributeValue().withNULL(Boolean.TRUE));
         AcquireLockOptions right = AcquireLockOptions.builder("partitionKey")
             .withSortKey("sortKey")
             .withData(ByteBuffer.wrap("data".getBytes()))

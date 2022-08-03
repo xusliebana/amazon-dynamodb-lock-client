@@ -201,7 +201,7 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
         availableStatuses.add(TableStatus.UPDATING);
     }
 
-    protected final AmazonDynamoDBClient dynamoDB;
+    protected final AmazonDynamoDB dynamoDB;
     protected final String tableName;
     private final String partitionKeyName;
     private final Optional<String> sortKeyName;

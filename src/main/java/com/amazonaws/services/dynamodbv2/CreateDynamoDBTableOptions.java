@@ -28,13 +28,13 @@ import java.util.Optional;
  * @author slutsker
  */
 public class CreateDynamoDBTableOptions {
-    private final AmazonDynamoDBClient dynamoDBClient;
+    private final AmazonDynamoDB dynamoDBClient;
     private final ProvisionedThroughput provisionedThroughput;
     private final String tableName;
     private final String partitionKeyName;
     private final Optional<String> sortKeyName;
 
-    CreateDynamoDBTableOptions(final AmazonDynamoDBClient dynamoDBClient, final ProvisionedThroughput provisionedThroughput, final String tableName, final String partitionKeyName,
+    CreateDynamoDBTableOptions(final AmazonDynamoDB dynamoDBClient, final ProvisionedThroughput provisionedThroughput, final String tableName, final String partitionKeyName,
         final Optional<String> sortKeyName) {
         this.dynamoDBClient = dynamoDBClient;
         this.provisionedThroughput = provisionedThroughput;
@@ -44,13 +44,13 @@ public class CreateDynamoDBTableOptions {
     }
 
     public static class CreateDynamoDBTableOptionsBuilder {
-        private AmazonDynamoDBClient dynamoDBClient;
+        private AmazonDynamoDB dynamoDBClient;
         private ProvisionedThroughput provisionedThroughput;
         private String tableName;
         private String partitionKeyName;
         private Optional<String> sortKeyName;
 
-        CreateDynamoDBTableOptionsBuilder(final AmazonDynamoDBClient dynamoDBClient, final ProvisionedThroughput provisionedThroughput, final String tableName) {
+        CreateDynamoDBTableOptionsBuilder(final AmazonDynamoDB dynamoDBClient, final ProvisionedThroughput provisionedThroughput, final String tableName) {
             this.dynamoDBClient = dynamoDBClient;
             this.provisionedThroughput = provisionedThroughput;
             this.tableName = tableName;
@@ -98,11 +98,11 @@ public class CreateDynamoDBTableOptions {
      * @param tableName             The table name to create.
      * @return a builder for CreateDynamoDBTableOptions instances
      */
-    public static CreateDynamoDBTableOptionsBuilder builder(final AmazonDynamoDBClient dynamoDBClient, final ProvisionedThroughput provisionedThroughput, final String tableName) {
+    public static CreateDynamoDBTableOptionsBuilder builder(final AmazonDynamoDB dynamoDBClient, final ProvisionedThroughput provisionedThroughput, final String tableName) {
         return new CreateDynamoDBTableOptionsBuilder(dynamoDBClient, provisionedThroughput, tableName);
     }
 
-    AmazonDynamoDBClient getDynamoDBClient() {
+    AmazonDynamoDB getDynamoDBClient() {
         return this.dynamoDBClient;
     }
 

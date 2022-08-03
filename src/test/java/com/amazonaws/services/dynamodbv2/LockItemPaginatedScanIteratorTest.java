@@ -23,16 +23,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.ScanRequest;
+import com.amazonaws.services.dynamodbv2.model.ScanResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 
 import org.mockito.junit.MockitoJUnitRunner;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 
 /**
  * Unit tests for LockItemPaginatedScanIterator.
@@ -42,25 +41,25 @@ import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
 @RunWith(MockitoJUnitRunner.class)
 public class LockItemPaginatedScanIteratorTest {
     @Mock
-    DynamoDbClient dynamodb;
+    AmazonDynamoDB dynamodb;
     @Mock
     LockItemFactory factory;
 
     @Test(expected = UnsupportedOperationException.class)
     public void remove_throwsUnsupportedOperationException() {
-        LockItemPaginatedScanIterator sut = new LockItemPaginatedScanIterator(dynamodb, ScanRequest.builder().build(), factory);
+        LockItemPaginatedScanIterator sut = new LockItemPaginatedScanIterator(dynamodb, new ScanRequest(), factory);
         sut.remove();
     }
 
     @Test(expected = NoSuchElementException.class)
     public void next_whenDoesNotHaveNext_throwsNoSuchElementException() {
-        ScanRequest request = ScanRequest.builder().build();
+        ScanRequest request = new ScanRequest();
         LockItemPaginatedScanIterator sut = new LockItemPaginatedScanIterator(dynamodb, request, factory);
         List<Map<String, AttributeValue>> list1 = new ArrayList<>();
         list1.add(new HashMap<>());
         when(dynamodb.scan(ArgumentMatchers.<ScanRequest>any()))
-            .thenReturn(ScanResponse.builder().items(list1).count(1).lastEvaluatedKey(new HashMap<>()).build())
-            .thenReturn(ScanResponse.builder().items(Collections.emptyList()).count(0).build());
+            .thenReturn(new ScanResult().withItems(list1).withCount(1).withLastEvaluatedKey(new HashMap<>()))
+            .thenReturn(new ScanResult().withItems(Collections.emptyList()).withCount(0));
         sut.next();
         sut.next();
     }

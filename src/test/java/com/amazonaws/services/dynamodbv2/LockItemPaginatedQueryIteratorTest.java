@@ -19,16 +19,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.QueryRequest;
+import com.amazonaws.services.dynamodbv2.model.QueryResult;
 import junit.framework.TestCase;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
-import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -42,35 +42,45 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class LockItemPaginatedQueryIteratorTest extends TestCase {
   @Mock
-  DynamoDbClient dynamodb;
+  AmazonDynamoDBClient dynamodb;
   @Mock
   LockItemFactory factory;
 
   @Test(expected = UnsupportedOperationException.class)
   public void remove_throwsUnsupportedOperationException() {
     LockItemPaginatedQueryIterator
-        sut = new LockItemPaginatedQueryIterator(dynamodb, QueryRequest.builder().build(), factory);
+        sut = new LockItemPaginatedQueryIterator(dynamodb, new QueryRequest(), factory);
     sut.remove();
   }
 
   @Test(expected = NoSuchElementException.class)
   public void next_whenDoesNotHaveNext_throwsNoSuchElementException() {
-    QueryRequest request = QueryRequest.builder().build();
+    QueryRequest request = new QueryRequest();
     LockItemPaginatedQueryIterator
         sut = new LockItemPaginatedQueryIterator(dynamodb, request, factory);
     List<Map<String, AttributeValue>> items = new ArrayList<>();
     items.add(new HashMap<>());
+
+    QueryResult queryResult1 = new QueryResult();
+    queryResult1.setItems(items);
+    queryResult1.setCount(1);
+    queryResult1.setLastEvaluatedKey(new HashMap<>());
+
+    QueryResult queryResult2 = new QueryResult();
+    queryResult2.setItems(items);
+    queryResult2.setCount(1);
+
     when(dynamodb.query(ArgumentMatchers.<QueryRequest>any()))
         .thenReturn(
-            QueryResponse.builder().items(items).count(1).lastEvaluatedKey(new HashMap<>()).build())
-        .thenReturn(QueryResponse.builder().items(items).count(1).build());
+             queryResult1)
+        .thenReturn(queryResult2);
     sut.next();
     sut.next();
   }
 
   @Test
   public void next_whenMultiplePages_shouldReturnAll() {
-    QueryRequest request = QueryRequest.builder().build();
+    QueryRequest request = new QueryRequest();
     LockItemPaginatedQueryIterator
         sut = new LockItemPaginatedQueryIterator(dynamodb, request, factory);
 
@@ -91,12 +101,21 @@ public class LockItemPaginatedQueryIteratorTest extends TestCase {
     LockItem mock2 = mock(LockItem.class);
     when(mock2.getOwnerName()).thenReturn("2");
 
+    QueryResult queryResult1 = new QueryResult();
+    queryResult1.setItems(page1);
+    queryResult1.setCount(1);
+    queryResult1.setLastEvaluatedKey(lastEvaluatedKey);
+
+    QueryResult queryResult2 = new QueryResult();
+    queryResult2.setItems(page2);
+    queryResult2.setCount(1);
+
     // Single item pages only to simulate multiple pages.
     when(factory.create(any())).thenReturn(mock1).thenReturn(mock2);
     when(dynamodb.query(ArgumentMatchers.<QueryRequest>any()))
         .thenReturn(
-            QueryResponse.builder().items(page1).count(1).lastEvaluatedKey(lastEvaluatedKey).build())
-        .thenReturn(QueryResponse.builder().items(page2).count(1).build());
+            queryResult1)
+        .thenReturn(queryResult2);
 
     LockItem item1 = sut.next();
     assertEquals(item1.getOwnerName(), "1");
@@ -106,7 +125,7 @@ public class LockItemPaginatedQueryIteratorTest extends TestCase {
 
   @Test
   public void next_whenMultipleItemsInOnePage_shouldReturnAll() {
-    QueryRequest request = QueryRequest.builder().build();
+    QueryRequest request = new QueryRequest();
     LockItemPaginatedQueryIterator
         sut = new LockItemPaginatedQueryIterator(dynamodb, request, factory);
 
@@ -124,10 +143,13 @@ public class LockItemPaginatedQueryIteratorTest extends TestCase {
     when(mock2.getOwnerName()).thenReturn("2");
 
     // Multiple items in one page.
+    QueryResult queryResult = new QueryResult();
+    queryResult.setItems(page1);
+    queryResult.setCount(2);
+
     when(factory.create(any())).thenReturn(mock1).thenReturn(mock2);
     when(dynamodb.query(ArgumentMatchers.<QueryRequest>any()))
-        .thenReturn(
-            QueryResponse.builder().items(page1).count(2).build());
+        .thenReturn(queryResult);
 
     LockItem item1 = sut.next();
     assertEquals(item1.getOwnerName(), "1");
@@ -137,7 +159,7 @@ public class LockItemPaginatedQueryIteratorTest extends TestCase {
 
   @Test
   public void hasNext_whenMultiplePages_shouldReturnTrueBeforeLastOne() {
-    QueryRequest request = QueryRequest.builder().build();
+    QueryRequest request = new QueryRequest();
     LockItemPaginatedQueryIterator
         sut = new LockItemPaginatedQueryIterator(dynamodb, request, factory);
 
@@ -156,12 +178,20 @@ public class LockItemPaginatedQueryIteratorTest extends TestCase {
     LockItem mock1 = mock(LockItem.class);
     LockItem mock2 = mock(LockItem.class);
 
+    QueryResult queryResult1 = new QueryResult();
+    queryResult1.setItems(page1);
+    queryResult1.setCount(1);
+    queryResult1.setLastEvaluatedKey(lastEvaluatedKey);
+
+    QueryResult queryResult2 = new QueryResult();
+    queryResult2.setItems(page2);
+    queryResult2.setCount(1);
+
     // Single item pages only to simulate multiple pages.
     when(factory.create(any())).thenReturn(mock1).thenReturn(mock2);
     when(dynamodb.query(ArgumentMatchers.<QueryRequest>any()))
-        .thenReturn(
-            QueryResponse.builder().items(page1).count(1).lastEvaluatedKey(lastEvaluatedKey).build())
-        .thenReturn(QueryResponse.builder().items(page2).count(1).build());
+        .thenReturn(queryResult1)
+        .thenReturn(queryResult2);
 
     assertTrue(sut.hasNext());
     sut.next();
@@ -172,7 +202,7 @@ public class LockItemPaginatedQueryIteratorTest extends TestCase {
 
   @Test
   public void hasNext_whenMultipleItemsInOnePage_shouldReturnTrueBeforeLastOne() {
-    QueryRequest request = QueryRequest.builder().build();
+    QueryRequest request = new QueryRequest();
     LockItemPaginatedQueryIterator
         sut = new LockItemPaginatedQueryIterator(dynamodb, request, factory);
 
@@ -187,11 +217,15 @@ public class LockItemPaginatedQueryIteratorTest extends TestCase {
     LockItem mock1 = mock(LockItem.class);
     LockItem mock2 = mock(LockItem.class);
 
+    QueryResult queryResult1 = new QueryResult();
+    queryResult1.setItems(page1);
+    queryResult1.setCount(2);
+
+
     // Multiple items in one page.
     when(factory.create(any())).thenReturn(mock1).thenReturn(mock2);
     when(dynamodb.query(ArgumentMatchers.<QueryRequest>any()))
-        .thenReturn(
-            QueryResponse.builder().items(page1).count(2).build());
+        .thenReturn(queryResult1);
 
     assertTrue(sut.hasNext());
     sut.next();
