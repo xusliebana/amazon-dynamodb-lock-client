@@ -878,7 +878,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
         Map<String, AttributeValue> currentLockRecord = result.getItem();
         //any values left from old locks should not be removed
         assertNotNull(currentLockRecord.get(additionalValue));
-        String additionalValuesExpected = currentLockRecord.get(additionalValue).s();
+        String additionalValuesExpected = currentLockRecord.get(additionalValue).getS();
         assertEquals(additionalValue, additionalValuesExpected);
 
         lockClient1.close();
@@ -920,7 +920,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
         Map<String, AttributeValue> currentLockRecord = result.getItem();
         //any values left from old locks should not be removed
         assertNotNull(currentLockRecord.get(additionalValue));
-        String additionalValuesExpected = currentLockRecord.get(additionalValue).s();
+        String additionalValuesExpected = currentLockRecord.get(additionalValue).getS();
         assertEquals(additionalValue, additionalValuesExpected);
 
         lockClient1.close();
@@ -1429,9 +1429,9 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
                 .withData(ByteBuffer.wrap(TEST_DATA.getBytes()))
                 .withAdditionalAttributes(additionalAttributes)
                 .build());
-        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).s().equals("ok"));
+        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).getS().equals("ok"));
         item = this.lockClient.getLock("testKey1", Optional.empty()).get();
-        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).s().equals("ok"));
+        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).getS().equals("ok"));
         final AmazonDynamoDBLockClient client = new AmazonDynamoDBLockClient(this.lockClient1Options);
         item = client.getLock("testKey1", Optional.empty()).get();
         assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).getS().equals("ok"));

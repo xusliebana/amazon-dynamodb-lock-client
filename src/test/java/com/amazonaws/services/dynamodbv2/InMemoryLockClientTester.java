@@ -167,7 +167,7 @@ public abstract class InMemoryLockClientTester {
 
         AmazonDynamoDB client = AmazonDynamoDBClientBuilder.standard()
         .withCredentials(new AWSStaticCredentialsProvider(credentials))
-                .withRegion(Regions.US_WEST_2)
+                //.withRegion(Regions.US_WEST_2)
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, Regions.US_WEST_2.name()))
                 .build();
         this.dynamoDBMock = safelySpyDDB(client);

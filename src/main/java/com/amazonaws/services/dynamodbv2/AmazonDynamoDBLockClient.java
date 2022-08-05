@@ -279,7 +279,7 @@ public class AmazonDynamoDBLockClient implements Runnable, Closeable {
         try {
             final DescribeTableResult result
                     = this.dynamoDB.describeTable(new DescribeTableRequest(tableName));
-            return availableStatuses.contains(result.getTable().getTableStatus());
+            return availableStatuses.contains(TableStatus.fromValue(result.getTable().getTableStatus()));
         } catch (final ResourceNotFoundException e) {
             // This exception indicates the table doesn't exist.
             return false;
