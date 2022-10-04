@@ -15,9 +15,9 @@
 package com.amazonaws.services.dynamodbv2;
 
 import java.util.Objects;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
-import software.amazon.awssdk.services.dynamodb.model.ScanResponse;
+
+import com.amazonaws.services.dynamodbv2.model.ScanRequest;
+import com.amazonaws.services.dynamodbv2.model.ScanResult;
 
 import static java.util.stream.Collectors.toList;
 
@@ -25,7 +25,7 @@ import static java.util.stream.Collectors.toList;
  * Lazy-loaded. Not immutable. Not thread safe.
  */
 final class LockItemPaginatedScanIterator extends LockItemPaginatedIterator {
-    private final DynamoDbClient dynamoDB;
+    private final AmazonDynamoDB dynamoDB;
     private volatile ScanRequest scanRequest;
     private final LockItemFactory lockItemFactory;
 
@@ -35,9 +35,9 @@ final class LockItemPaginatedScanIterator extends LockItemPaginatedIterator {
      * if there are more pages to load if its
      * {@link ScanResponse#lastEvaluatedKey()} is not null.
      */
-    private volatile ScanResponse scanResponse = null;
+    private volatile ScanResult scanResponse = null;
 
-    LockItemPaginatedScanIterator(final DynamoDbClient dynamoDB, final ScanRequest scanRequest, final LockItemFactory lockItemFactory) {
+    LockItemPaginatedScanIterator(final AmazonDynamoDB dynamoDB, final ScanRequest scanRequest, final LockItemFactory lockItemFactory) {
         this.dynamoDB = Objects.requireNonNull(dynamoDB, "dynamoDB must not be null");
         this.scanRequest = Objects.requireNonNull(scanRequest, "scanRequest must not be null");
         this.lockItemFactory = Objects.requireNonNull(lockItemFactory, "lockItemFactory must not be null");
@@ -48,7 +48,7 @@ final class LockItemPaginatedScanIterator extends LockItemPaginatedIterator {
             return true;
         }
 
-        return this.scanResponse.lastEvaluatedKey() != null && !this.scanResponse.lastEvaluatedKey().isEmpty();
+        return this.scanResponse.getLastEvaluatedKey() != null && !this.scanResponse.getLastEvaluatedKey().isEmpty();
     }
 
     protected boolean hasLoadedFirstPage() {
@@ -58,13 +58,11 @@ final class LockItemPaginatedScanIterator extends LockItemPaginatedIterator {
     protected void loadNextPageIntoResults() {
         this.scanResponse = this.dynamoDB.scan(this.scanRequest);
 
-        this.currentPageResults = this.scanResponse.items().stream().map(this.lockItemFactory::create).collect(toList());
+        this.currentPageResults = this.scanResponse.getItems().stream().map(this.lockItemFactory::create).collect(toList());
         this.currentPageResultsIndex = 0;
 
-        this.scanRequest = ScanRequest.builder()
-                .tableName(scanRequest.tableName())
-                .exclusiveStartKey(scanResponse.lastEvaluatedKey())
-                .build();
+        this.scanRequest = new ScanRequest(scanRequest.getTableName());
+        scanRequest.setExclusiveStartKey(scanResponse.getLastEvaluatedKey());
 
     }
 }

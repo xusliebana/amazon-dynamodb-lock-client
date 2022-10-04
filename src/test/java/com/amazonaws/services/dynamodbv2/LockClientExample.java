@@ -25,17 +25,23 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
 import org.junit.Test;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 public class LockClientExample {
     @Test
     public void usageExample() throws InterruptedException, IOException {
         // Inject client configuration to the builder like the endpoint and signing region
-        final DynamoDbClient dynamoDB = DynamoDbClient.builder()
-                .region(Region.US_WEST_2).endpointOverride(URI.create("http://localhost:4567"))
-                .build();
+        final AmazonDynamoDB dynamoDB = AmazonDynamoDBClient.builder().
+        withRegion(Region.getRegion(Regions.US_WEST_2).getName()).
+                withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(
+                        "http://localhost:4567", Region.getRegion(Regions.US_WEST_2).getName())).
+        //endpointOverride(URI.create("http://localhost:4567"))
+                build();
+
         // Whether or not to create a heartbeating background thread
         final boolean createHeartbeatBackgroundThread = true;
         //build the lock client

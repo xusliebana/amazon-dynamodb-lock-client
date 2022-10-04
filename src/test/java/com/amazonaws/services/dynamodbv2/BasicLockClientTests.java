@@ -14,9 +14,8 @@
  */
 package com.amazonaws.services.dynamodbv2;
 
-import com.amazonaws.services.dynamodbv2.model.LockNotGrantedException;
-import com.amazonaws.services.dynamodbv2.model.LockTableDoesNotExistException;
-import com.amazonaws.services.dynamodbv2.model.SessionMonitorNotSetException;
+import com.amazonaws.SdkClientException;
+import com.amazonaws.services.dynamodbv2.model.*;
 import com.amazonaws.services.dynamodbv2.util.LockClientUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -31,14 +30,6 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
-import software.amazon.awssdk.core.exception.SdkClientException;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
-import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.PutItemResponse;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -811,7 +802,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
         final String lockPartitionKey = "testKey1";
         final String lockSortKey = "1";
         final Map<String, AttributeValue> additional = new HashMap<>();
-        additional.put(additionalValue, AttributeValue.builder().s(additionalValue).build());
+        additional.put(additionalValue, new AttributeValue(additionalValue));
         //acquire first lock
         final Optional<LockItem> lockItem1 = lockClient1.tryAcquireLock(AcquireLockOptions.builder(lockPartitionKey).withSortKey(lockSortKey).withDeleteLockOnRelease(false).withAdditionalAttributes(additional).build());
 
@@ -825,14 +816,14 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
 
         /* Get the complete record for the lock to verify other fields are not replaced*/
         Map<String, AttributeValue> key = new HashMap<>();
-        key.put(lockClient1Options.getPartitionKeyName(), AttributeValue.builder().s(lockPartitionKey).build());
-        key.put("rangeKey", AttributeValue.builder().s(lockSortKey).build());
-        GetItemResponse result = lockClient1Options.getDynamoDBClient().getItem(GetItemRequest.builder().tableName(RANGE_KEY_TABLE_NAME).key(key).build());
-        Map<String, AttributeValue> currentLockRecord = result.item();
+        key.put(lockClient1Options.getPartitionKeyName(), new AttributeValue(lockPartitionKey));
+        key.put("rangeKey", new AttributeValue(lockSortKey));
+        GetItemResult result = lockClient1Options.getDynamoDBClient().getItem(new GetItemRequest().withTableName(RANGE_KEY_TABLE_NAME).withKey(key));
+        Map<String, AttributeValue> currentLockRecord = result.getItem();
 
         //any values left from old locks should not be removed
         assertNotNull(currentLockRecord.get(additionalValue));
-        String additionalValuesExpected = currentLockRecord.get(additionalValue).s();
+        String additionalValuesExpected = currentLockRecord.get(additionalValue).getS();
         assertEquals(additionalValue, additionalValuesExpected);
 
         lockClient1.close();
@@ -863,7 +854,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
         final String lockPartitionKey = "testKey1";
         final String lockSortKey = "1";
         Map<String, AttributeValue> additional = new HashMap<>();
-        additional.put(additionalValue, AttributeValue.builder().s(additionalValue).build());
+        additional.put(additionalValue, new AttributeValue(additionalValue));
 
         final Optional<LockItem> lockItem1 = lockClient1.tryAcquireLock(AcquireLockOptions.builder(lockPartitionKey)
                 .withSortKey(lockSortKey)
@@ -881,13 +872,13 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
 
         /* Get the complete record for the lock to verify other fields are not replaced*/
         Map<String, AttributeValue> key = new HashMap<>();
-        key.put(lockClient1Options.getPartitionKeyName(), AttributeValue.builder().s(lockPartitionKey).build());
-        key.put("rangeKey", AttributeValue.builder().s(lockSortKey).build());
-        GetItemResponse result = this.dynamoDBMock.getItem(GetItemRequest.builder().tableName(RANGE_KEY_TABLE_NAME).key(key).build());
-        Map<String, AttributeValue> currentLockRecord = result.item();
+        key.put(lockClient1Options.getPartitionKeyName(), new AttributeValue(lockPartitionKey));
+        key.put("rangeKey", new AttributeValue(lockSortKey));
+        GetItemResult result = this.dynamoDBMock.getItem(new GetItemRequest().withTableName(RANGE_KEY_TABLE_NAME).withKey(key));
+        Map<String, AttributeValue> currentLockRecord = result.getItem();
         //any values left from old locks should not be removed
         assertNotNull(currentLockRecord.get(additionalValue));
-        String additionalValuesExpected = currentLockRecord.get(additionalValue).s();
+        String additionalValuesExpected = currentLockRecord.get(additionalValue).getS();
         assertEquals(additionalValue, additionalValuesExpected);
 
         lockClient1.close();
@@ -909,7 +900,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
         final String additionalValue = "doNotDelete";
         final String lockPartitionKey = "testKey1";
         Map<String, AttributeValue> additional = new HashMap<>();
-        additional.put(additionalValue, AttributeValue.builder().s(additionalValue).build());
+        additional.put(additionalValue, new AttributeValue(additionalValue));
 
         final Optional<LockItem> lockItem1 = lockClient1.tryAcquireLock(AcquireLockOptions.builder(lockPartitionKey)
                 .withDeleteLockOnRelease(false).withAdditionalAttributes(additional).build());
@@ -923,13 +914,13 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
 
         /* Get the complete record for the lock to verify other fields are not replaced*/
         Map<String, AttributeValue> key = new HashMap<>();
-        key.put(lockClient1Options.getPartitionKeyName(), AttributeValue.builder().s(lockPartitionKey).build());
+        key.put(lockClient1Options.getPartitionKeyName(), new AttributeValue(lockPartitionKey));
 
-        GetItemResponse result = this.dynamoDBMock.getItem(GetItemRequest.builder().tableName(TABLE_NAME).key(key).build());
-        Map<String, AttributeValue> currentLockRecord = result.item();
+        GetItemResult result = this.dynamoDBMock.getItem(new GetItemRequest().withTableName(TABLE_NAME).withKey(key));
+        Map<String, AttributeValue> currentLockRecord = result.getItem();
         //any values left from old locks should not be removed
         assertNotNull(currentLockRecord.get(additionalValue));
-        String additionalValuesExpected = currentLockRecord.get(additionalValue).s();
+        String additionalValuesExpected = currentLockRecord.get(additionalValue).getS();
         assertEquals(additionalValue, additionalValuesExpected);
 
         lockClient1.close();
@@ -1145,7 +1136,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
         final AmazonDynamoDBLockClient client = new AmazonDynamoDBLockClient(this.lockClient1Options);
 
         final LockItem item = client.acquireLock(ACQUIRE_LOCK_OPTIONS_TEST_KEY_1);
-        Mockito.doThrow(SdkClientException.builder().message("Client exception releasing lock").build())
+        Mockito.doThrow(new SdkClientException("Client exception releasing lock"))
                 .when(dynamoDBMock).deleteItem(Mockito.any(DeleteItemRequest.class));
 
         final ReleaseLockOptions options = ReleaseLockOptions.builder(item).withBestEffort(true).build();
@@ -1160,7 +1151,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
                 AmazonDynamoDBLockClientOptions.builder(dynamoDBMock, TABLE_NAME).withOwnerName(LOCALHOST).build());
 
         final LockItem item = client.acquireLock(ACQUIRE_LOCK_OPTIONS_TEST_KEY_1);
-        Mockito.doThrow(SdkClientException.builder().message("Client exception releasing lock").build())
+        Mockito.doThrow(new SdkClientException("Client exception releasing lock"))
                 .when(dynamoDBMock).deleteItem(Mockito.any(DeleteItemRequest.class));
 
         client.releaseLock(item);
@@ -1433,17 +1424,17 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
     @Test
     public void testAdditionalAttributes() throws LockNotGrantedException, InterruptedException, IOException {
         final Map<String, AttributeValue> additionalAttributes = new HashMap<String, AttributeValue>();
-        additionalAttributes.put(TABLE_NAME, AttributeValue.builder().s("ok").build());
+        additionalAttributes.put(TABLE_NAME, new AttributeValue("ok"));
         LockItem item = this.lockClient.acquireLock(AcquireLockOptions.builder("testKey1")
                 .withData(ByteBuffer.wrap(TEST_DATA.getBytes()))
                 .withAdditionalAttributes(additionalAttributes)
                 .build());
-        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).s().equals("ok"));
+        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).getS().equals("ok"));
         item = this.lockClient.getLock("testKey1", Optional.empty()).get();
-        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).s().equals("ok"));
+        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).getS().equals("ok"));
         final AmazonDynamoDBLockClient client = new AmazonDynamoDBLockClient(this.lockClient1Options);
         item = client.getLock("testKey1", Optional.empty()).get();
-        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).s().equals("ok"));
+        assertTrue(item.getAdditionalAttributes().get(TABLE_NAME).getS().equals("ok"));
         assertTrue(item.getAdditionalAttributes().equals(additionalAttributes));
         client.close();
     }
@@ -1475,7 +1466,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
 
     private void testInvalidAttribute(final String invalidAttribute) throws LockNotGrantedException, InterruptedException {
         final Map<String, AttributeValue> additionalAttributes = new HashMap<>();
-        additionalAttributes.put(invalidAttribute, AttributeValue.builder().s("ok").build());
+        additionalAttributes.put(invalidAttribute, new AttributeValue("ok"));
         this.lockClient.acquireLock(AcquireLockOptions.builder("testKey1")
                 .withData(ByteBuffer.wrap(TEST_DATA.getBytes()))
                 .withAdditionalAttributes(additionalAttributes)
@@ -1643,7 +1634,7 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
                     .withCreateHeartbeatBackgroundThread(false)
                     .build()));
 
-        Mockito.doThrow(SdkClientException.builder().message("Client exception acquiring lock").build())
+        Mockito.doThrow(new SdkClientException("Client exception acquiring lock"))
                 .when(testLockClient).getLockFromDynamoDB(ArgumentMatchers.any(GetLockOptions.class));
         try {
             testLockClient.acquireLock(AcquireLockOptions.builder(lockName)
@@ -1660,11 +1651,11 @@ public class BasicLockClientTests extends InMemoryLockClientTester {
 
     @Test
     public void testSetRequestLevelMetricCollector() throws InterruptedException, IOException {
-        final DynamoDbClient dynamoDB = Mockito.mock(DynamoDbClient.class);
+        final AmazonDynamoDB dynamoDB = Mockito.mock(AmazonDynamoDB.class);
         when(dynamoDB.getItem(ArgumentMatchers.any(GetItemRequest.class)))
-                .thenReturn(GetItemResponse.builder().item(null).build());
+                .thenReturn(new GetItemResult().withItem(null));
         when(dynamoDB.putItem(ArgumentMatchers.any(PutItemRequest.class)))
-                .thenReturn(PutItemResponse.builder().build());
+                .thenReturn(new PutItemResult());
 
         final AmazonDynamoDBLockClientOptions lockClientOptions = AmazonDynamoDBLockClientOptions.builder(dynamoDB, TABLE_NAME)
                     .withOwnerName("ownerName0")

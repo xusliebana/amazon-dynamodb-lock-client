@@ -15,9 +15,12 @@
 package com.amazonaws.services.dynamodbv2;
 
 import java.util.Objects;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
-import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
+
+import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.QueryRequest;
+import com.amazonaws.services.dynamodbv2.model.QueryResult;
+//import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+//import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 
 import static java.util.stream.Collectors.toList;
 
@@ -25,7 +28,7 @@ import static java.util.stream.Collectors.toList;
  * Lazy-loaded. Not immutable. Not thread safe.
  */
 final class LockItemPaginatedQueryIterator extends LockItemPaginatedIterator {
-  private final DynamoDbClient dynamoDB;
+  private final AmazonDynamoDB dynamoDB;
   private volatile QueryRequest queryRequest;
   private final LockItemFactory lockItemFactory;
 
@@ -35,9 +38,9 @@ final class LockItemPaginatedQueryIterator extends LockItemPaginatedIterator {
    * if there are more pages to load if its
    * {@link QueryResponse#lastEvaluatedKey()} is not null.
    */
-  private volatile QueryResponse queryResponse = null;
+  private volatile QueryResult queryResponse = null;
 
-  LockItemPaginatedQueryIterator(final DynamoDbClient dynamoDB, final QueryRequest queryRequest, final LockItemFactory lockItemFactory) {
+  LockItemPaginatedQueryIterator(final AmazonDynamoDB dynamoDB, final QueryRequest queryRequest, final LockItemFactory lockItemFactory) {
     this.dynamoDB = Objects.requireNonNull(dynamoDB, "dynamoDB must not be null");
     this.queryRequest = Objects.requireNonNull(queryRequest, "queryRequest must not be null");
     this.lockItemFactory = Objects.requireNonNull(lockItemFactory, "lockItemFactory must not be null");
@@ -48,7 +51,7 @@ final class LockItemPaginatedQueryIterator extends LockItemPaginatedIterator {
       return true;
     }
 
-    return this.queryResponse.lastEvaluatedKey() != null && !this.queryResponse.lastEvaluatedKey().isEmpty();
+    return this.queryResponse.getLastEvaluatedKey() != null && !this.queryResponse.getLastEvaluatedKey().isEmpty();
   }
 
   protected boolean hasLoadedFirstPage() {
@@ -58,15 +61,14 @@ final class LockItemPaginatedQueryIterator extends LockItemPaginatedIterator {
   protected void loadNextPageIntoResults() {
     this.queryResponse = this.dynamoDB.query(this.queryRequest);
 
-    this.currentPageResults = this.queryResponse.items().stream().map(this.lockItemFactory::create).collect(toList());
+    this.currentPageResults = this.queryResponse.getItems().stream().map(this.lockItemFactory::create).collect(toList());
     this.currentPageResultsIndex = 0;
 
-    this.queryRequest = QueryRequest.builder()
-        .tableName(queryRequest.tableName())
-        .keyConditionExpression(queryRequest.keyConditionExpression())
-        .expressionAttributeNames(queryRequest.expressionAttributeNames())
-        .expressionAttributeValues(queryRequest.expressionAttributeValues())
-        .exclusiveStartKey(queryResponse.lastEvaluatedKey())
-        .build();
+    this.queryRequest = new QueryRequest().
+         withTableName(queryRequest.getTableName()).
+         withKeyConditionExpression(queryRequest.getKeyConditionExpression())
+        .withExpressionAttributeNames(queryRequest.getExpressionAttributeNames())
+        .withExpressionAttributeValues(queryRequest.getExpressionAttributeValues())
+        .withExclusiveStartKey(queryResponse.getLastEvaluatedKey());
   }
 }

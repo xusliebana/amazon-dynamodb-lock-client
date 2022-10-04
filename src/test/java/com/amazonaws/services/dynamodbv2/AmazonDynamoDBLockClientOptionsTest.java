@@ -23,17 +23,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.amazonaws.services.dynamodbv2.model.GetItemRequest;
+import com.amazonaws.services.dynamodbv2.model.GetItemResult;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
-import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 
 /**
  * Unit tests for AmazonDynamoDBLockClientOptions.
@@ -43,7 +41,7 @@ import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({AmazonDynamoDBLockClientTest.class, AmazonDynamoDBLockClientOptions.AmazonDynamoDBLockClientOptionsBuilder.class})
 public class AmazonDynamoDBLockClientOptionsTest {
-    DynamoDbClient dynamodb = PowerMockito.mock(DynamoDbClient.class);
+    AmazonDynamoDB dynamodb = PowerMockito.mock(AmazonDynamoDB.class);
 
     @Test
     public void testBuilder_whenGetLocalHostThrowsUnknownHostException_uuidCreateRandomIsCalled() throws UnknownHostException, InterruptedException {
@@ -59,10 +57,10 @@ public class AmazonDynamoDBLockClientOptionsTest {
         AmazonDynamoDBLockClientOptions options = builder.build();
         AmazonDynamoDBLockClient client = new AmazonDynamoDBLockClient(options);
         Map<String, AttributeValue> previousLockItem = new HashMap<>(3);
-        previousLockItem.put("ownerName", AttributeValue.builder().s("foobar").build());
-        previousLockItem.put("recordVersionNumber", AttributeValue.builder().s("oolala").build());
-        previousLockItem.put("leaseDuration", AttributeValue.builder().s("1").build());
-        when(dynamodb.getItem(Matchers.<GetItemRequest>any())).thenReturn(GetItemResponse.builder().item(previousLockItem).build());
+        previousLockItem.put("ownerName", new AttributeValue("foobar"));
+        previousLockItem.put("recordVersionNumber", new AttributeValue("oolala"));
+        previousLockItem.put("leaseDuration", new AttributeValue("1"));
+        when(dynamodb.getItem(Matchers.<GetItemRequest>any())).thenReturn(new GetItemResult().withItem(previousLockItem));
         LockItem lock = client.acquireLock(AcquireLockOptions.builder("asdf").build());
         assertEquals(uuid.toString(), lock.getOwnerName());
     }

@@ -14,7 +14,8 @@
  */
 package com.amazonaws.services.dynamodbv2;
 
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
 import java.util.Map;
 
